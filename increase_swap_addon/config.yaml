@@ -1,0 +1,26 @@
+name: "Increase Swap"
+version: "1.0.0"
+slug: increase_swap_addon
+description: "This add-on increases the swap space on your system."
+arch:
+  - amd64
+  - armhf
+  - armv7
+  - aarch64
+  - i386
+startup: services
+boot: "auto"
+init: false
+options:
+  swap_size: 2048
+  swap_location: "backup"
+schema:
+  swap_size: int(256,8192)
+  swap_location: list(backup|share|media|addons)
+privileged:
+  - SYS_ADMIN
+map:
+  - addons:rw
+  - media:rw
+  - share:rw
+  - backup:rw

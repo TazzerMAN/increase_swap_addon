@@ -1,0 +1,10 @@
+fr:
+  title: "Augmenter la Swap"
+  description: "Cet add-on augmente l'espace de swap sur votre système."
+  config:
+    swap_size:
+      name: "Taille de la Swap (MB)"
+      description: "La taille du fichier de swap en Mo. La plage autorisée est de 256 à 8192 Mo."
+    swap_location:
+      name: "Emplacement du Swap"
+      description: "L'emplacement (répertoire) où le fichier de swap sera créé."
