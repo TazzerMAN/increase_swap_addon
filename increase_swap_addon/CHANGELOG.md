@@ -1,5 +1,14 @@
 # Changelog
 
-## 1.0.0 (2023-04-16)
+## [1.1.0] - 2023-04-26
 
-- Initial release
+### Added
+- Support for resizing the swap file when the configuration changes.
+- Automatically remove old swap file when changing the swap location in the configuration.
+
+## [1.0.0] - 2023-04-16
+
+### Added
+- Initial release of the Increase Swap Add-on for Home Assistant.
+- Create and enable swap file based on user configuration.
+- Configurable swap size and location via the Home Assistant interface.
