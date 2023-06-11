@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.1] - 2023-06-11
+
+### Added
+- Timestamp added to log messages.
+
 ## [1.1.0] - 2023-04-26
 
 ### Added
