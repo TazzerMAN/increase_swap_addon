@@ -15,7 +15,7 @@ remove_old_swap_file() {
       old_swap_file="/${location}/_swap.swap"
       if [ -f "${old_swap_file}" ]; then
         print_date "Removing old swap file at ${old_swap_file}..."
-        swapoff "${old_swap_file}"
+        swapoff "${old_swap_file}" || print_date "Swap file is ready to be delete. Ignore the previous error line about swapoff Invalid argument."
         rm -f "${old_swap_file}"
         print_date "Old swap file removed."
       fi
@@ -34,30 +34,32 @@ print_date "Checking swap size at ${SWAP_LOCATION}..."
 remove_old_swap_file
 
 if [ ! -f "${SWAP_FILE}" ]; then
-  print_date "Creating new swap file of ${SWAP_SIZE}M..."
+  print_date "Creating new swap file: ${SWAP_FILE} of ${SWAP_SIZE}M..."
   fallocate -l "${SWAP_SIZE}M" "${SWAP_FILE}"
-  mkswap "${SWAP_FILE}"
   chmod 0600 "${SWAP_FILE}"
+  mkswap "${SWAP_FILE}"
   swapon "${SWAP_FILE}"
-  print_date "New swap file created and enabled."
+  print_date "New swap file: ${SWAP_FILE} created and enabled."
 else
   CURRENT_SWAP_SIZE=$(($(stat -c%s "${SWAP_FILE}") / (1024 * 1024)))
   if [ "${CURRENT_SWAP_SIZE}" -ne "${SWAP_SIZE}" ]; then
-    print_date "Resizing swap file from ${CURRENT_SWAP_SIZE}M to ${SWAP_SIZE}M..."
-    swapoff "${SWAP_FILE}"
+    print_date "Resizing swap file: ${SWAP_FILE} from ${CURRENT_SWAP_SIZE}M to ${SWAP_SIZE}M..."
+    swapoff "${SWAP_FILE}" || print_date "Swap file has been already set off. Ignore the previous error line about swapoff Invalid argument."
+    rm -f "${SWAP_FILE}"
     fallocate -l "${SWAP_SIZE}M" "${SWAP_FILE}"
+    chmod 0600 "${SWAP_FILE}"
     mkswap "${SWAP_FILE}"
     swapon "${SWAP_FILE}"
     print_date "Swap file resized and enabled."
-  elif [[ ! $(dmesg | grep _swap.swap) = *swap\ on* ]]; then
-    print_date "Swap file exists but not enabled. Enabling swap file..."
+  elif [[ ! $(cat /proc/swaps | grep _swap.swap) ]]; then
+    print_date "Swap file: ${SWAP_FILE} exists but not enabled. Enabling swap file..."
     mkswap "${SWAP_FILE}"
     swapon "${SWAP_FILE}"
-    print_date "Existing swap file enabled."
+    print_date "Existing swap file: ${SWAP_FILE} enabled."
   else
-    print_date "Swap file already enabled. Refreshing swap file..."
-    swapoff "${SWAP_FILE}"
+    print_date "Swap file: ${SWAP_FILE} already enabled. Refreshing swap file..."
+    swapoff "${SWAP_FILE}" || print_date "Swap file has been already set off. Ignore the previous error line about swapoff Invalid argument."
     swapon "${SWAP_FILE}"
-    print_date "Swap file refreshed and enabled."
+    print_date "Swap file: ${SWAP_FILE} refreshed and enabled."
   fi
 fi
