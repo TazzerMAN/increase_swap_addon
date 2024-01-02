@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.2] - 2024-01-02
+
+### Fix
+- Fixing the issue when the swap file has been already set off.
+
+### Added
+- Improved the log messages.
+
 ## [1.1.1] - 2023-06-11
 
 ### Added
