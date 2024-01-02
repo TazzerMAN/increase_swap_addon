@@ -1,4 +1,4 @@
-# Increase Swap Add-on for Home Assistant
+# Increase Swap Add-on for Home Assistant Operating System (HAOS)
 
 This add-on increases the swap space on your system initially created for Rasberry Pi.  
 You can configure the size and location of the swap file via the Home Assistant interface.
