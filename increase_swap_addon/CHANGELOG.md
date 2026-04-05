@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0] - 2026-04-05
+
+### Changed
+- Updated base Docker image from `ghcr.io/hassio-addons/base:13.1.4` to `ghcr.io/home-assistant/base:2026.03.1` for latest Home Assistant compatibility.
+- Removed deprecated `i386` and `armhf` architectures (no longer supported by Home Assistant).
+- Fixed translation file format to match current Home Assistant requirements.
+- Added `url` and `image` fields to addon configuration.
+
 ## [1.2.0] - 2024-04-13
 
 ### Added
