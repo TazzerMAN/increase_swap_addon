@@ -5,9 +5,8 @@ description: "This add-on increases the swap space on your system."
 url: "https://github.com/TazzerMAN/increase_swap_addon"
 image: "ghcr.io/tazzerman/increase_swap_addon-{arch}"
 arch:
-  - amd64
-  - armv7
   - aarch64
+  - amd64
 startup: services
 boot: "auto"
 init: false
