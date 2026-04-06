@@ -3,7 +3,6 @@ version: "1.4.0"
 slug: increase_swap_addon
 description: "This add-on increases the swap space on your system."
 url: "https://github.com/TazzerMAN/increase_swap_addon"
-image: "ghcr.io/tazzerman/increase_swap_addon-{arch}"
 arch:
   - aarch64
   - amd64
