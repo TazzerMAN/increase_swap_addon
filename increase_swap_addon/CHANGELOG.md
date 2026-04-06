@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0] - 2026-04-06
+
+### Changed
+- Removed deprecated `armv7` architecture (no longer supported by Home Assistant).
+- Added OCI labels to Dockerfile for better container metadata.
+
 ## [1.3.0] - 2026-04-05
 
 ### Changed
