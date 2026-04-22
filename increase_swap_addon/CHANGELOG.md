@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.1] - 2026-04-22
+
+### Fixed
+- Restore addon installation: v1.4.0 referenced `ghcr.io/hassio-addons/app-base`, which is not anonymously pullable from ghcr.io (returns 403 on the token endpoint).
+- Pin base image to `ghcr.io/hassio-addons/base:20.1.0` (latest stable, publicly pullable).
+
 ## [1.4.0] - 2026-04-06
 
 ### Changed
