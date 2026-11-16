@@ -1,13 +1,13 @@
 name: "Increase Swap"
-version: "1.4.1"
+version: "1.5.0"
 slug: increase_swap_addon
-description: "This add-on increases the swap space on your system."
+description: "Adds a swap file to Home Assistant OS, sized and placed from the app options."
 url: "https://github.com/TazzerMAN/increase_swap_addon"
 arch:
   - aarch64
   - amd64
+image: "ghcr.io/tazzerman/increase_swap_addon"
 startup: services
-boot: "auto"
 init: false
 options:
   swap_size: 2048
@@ -15,10 +15,18 @@ options:
 schema:
   swap_size: int(256,8192)
   swap_location: list(backup|share|media|addons)
+  swap_folder: str?
 privileged:
   - SYS_ADMIN
 map:
-  - addons:rw
-  - media:rw
-  - share:rw
-  - backup:rw
+  # local_apps replaces the legacy "addons" map type; the path keeps the
+  # historical /addons mount so existing swap files are still found.
+  - type: local_apps
+    read_only: false
+    path: /addons
+  - type: media
+    read_only: false
+  - type: share
+    read_only: false
+  - type: backup
+    read_only: false

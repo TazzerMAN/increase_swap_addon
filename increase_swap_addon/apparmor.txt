@@ -1,0 +1,47 @@
+#include <tunables/global>
+
+profile increase_swap_addon flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  file,
+  signal,
+
+  # swapon and swapoff need sys_admin; the rest is what s6-overlay uses at start.
+  capability sys_admin,
+  capability chown,
+  capability dac_override,
+  capability fowner,
+  capability fsetid,
+  capability kill,
+  capability setgid,
+  capability setuid,
+
+  # Bashio reads the options from the Supervisor API.
+  network inet stream,
+  network inet6 stream,
+  network inet dgram,
+  network inet6 dgram,
+
+  /init rix,
+  /bin/** ix,
+  /sbin/** ix,
+  /usr/bin/** ix,
+  /usr/sbin/** ix,
+  /command/** ix,
+  /package/** ix,
+  /run/** rwk,
+  /etc/s6-overlay/** rwix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+
+  /usr/lib/bashio/** ix,
+  /tmp/** rwk,
+
+  /run.sh rix,
+  /data/** rw,
+  /addons/** rw,
+  /backup/** rw,
+  /media/** rw,
+  /share/** rw,
+}
