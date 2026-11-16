@@ -8,7 +8,6 @@ arch:
   - amd64
 image: "ghcr.io/tazzerman/increase_swap_addon"
 startup: services
-boot: auto
 init: false
 options:
   swap_size: 2048
