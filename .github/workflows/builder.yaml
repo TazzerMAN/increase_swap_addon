@@ -142,3 +142,32 @@ jobs:
             latest
           registry-prefix: ${{ needs.prepare.outputs.registry_prefix }}
           skip-existing: ${{ needs.prepare.outputs.version }}
+
+  release:
+    name: Publish GitHub release
+    needs: [prepare, manifest]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Create the release of this version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          IMAGE: ${{ needs.prepare.outputs.registry_prefix }}/${{ needs.prepare.outputs.image_name }}
+        run: |
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "Release v${VERSION} already exists."
+            exit 0
+          fi
+          awk -v version="${VERSION}" '
+            index($0, "## [" version "]") == 1 { found = 1; next }
+            /^## \[/ { if (found) exit }
+            found
+          ' "${APP_DIR}/CHANGELOG.md" | sed '/./,$!d' > notes.md
+          printf '\n**Image:** `%s:%s`\n' "${IMAGE}" "${VERSION}" >> notes.md
+          gh release create "v${VERSION}" --target "${GITHUB_SHA}" --title "${VERSION}" --notes-file notes.md
