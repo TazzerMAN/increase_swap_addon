@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.1] - 2026-11-16
+
+### Fixed
+- Log lines show the date again, not only the time.
+
 ## [1.5.0] - 2026-11-16
 
 ### Added

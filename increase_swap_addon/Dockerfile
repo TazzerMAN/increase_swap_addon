@@ -3,6 +3,9 @@ FROM ${BUILD_FROM}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# Bashio logs only the time by default; the date helps when reading older logs.
+ENV LOG_TIMESTAMP="%H:%M:%S %d/%m/%Y"
+
 COPY run.sh /
 RUN chmod a+x /run.sh
 
