@@ -1,7 +1,10 @@
 configuration:
   swap_size:
     name: "Swap size (MB)"
-    description: "The size of the swap file in MB. The allowed range is 256 to 8192 MB."
+    description: "Size of the swap file, from 256 to 8192 MB."
   swap_location:
     name: "Swap location"
-    description: "The location (directory) where the swap file will be created."
+    description: "Folder that holds the swap file. Keep \"backup\": it is the only one never copied into backups."
+  swap_folder:
+    name: "Subfolder (optional)"
+    description: "Subfolder of the swap location, for instance the name of a USB drive under media. It must already exist."

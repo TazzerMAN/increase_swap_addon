@@ -17,6 +17,7 @@ options:
 schema:
   swap_size: int(256,8192)
   swap_location: list(backup|share|media|addons)
+  swap_folder: str?
 privileged:
   - SYS_ADMIN
 map:

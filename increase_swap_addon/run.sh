@@ -1,78 +1,149 @@
 #!/command/with-contenv bashio
 # shellcheck shell=bash
+# Creates, resizes or enables the swap file, then exits.
 
-set -e
+readonly SWAP_NAME="_swap.swap"
+readonly TEMP_SWAP_NAME="_temp_swap.swap"
+readonly LOCATIONS=("addons" "media" "share" "backup")
+# Free space kept on the disk after the swap file, so Home Assistant keeps working.
+readonly SPACE_MARGIN_MB=512
+# Path of the swap file in use, so a change of location or folder can clean it up.
+readonly STATE_FILE="/data/swap_file"
 
 SWAP_SIZE=$(bashio::config 'swap_size')
 SWAP_LOCATION=$(bashio::config 'swap_location')
-SWAP_FILE="${SWAP_LOCATION}/_swap.swap"
+SWAP_FOLDER=""
+if bashio::config.has_value 'swap_folder'; then
+  SWAP_FOLDER=$(bashio::config 'swap_folder')
+  SWAP_FOLDER="${SWAP_FOLDER#/}"
+  SWAP_FOLDER="${SWAP_FOLDER%/}"
+fi
+if [[ "/${SWAP_FOLDER}/" == *"/../"* ]]; then
+  bashio::exit.nok "swap_folder must stay inside ${SWAP_LOCATION}: '..' is not allowed."
+fi
+SWAP_DIR="/${SWAP_LOCATION}${SWAP_FOLDER:+/${SWAP_FOLDER}}"
+SWAP_FILE="${SWAP_DIR}/${SWAP_NAME}"
 TEMP_SWAP_SIZE=$((SWAP_SIZE / 2))
-TEMP_SWAP_FILE="${SWAP_LOCATION}/_temp_swap.swap"
+TEMP_SWAP_FILE="${SWAP_DIR}/${TEMP_SWAP_NAME}"
 
-possible_locations=("addons" "media" "share" "backup")
+free_space_mb() {
+  df -Pm "$1" | awk 'NR == 2 { print $4 }'
+}
 
-remove_old_swap_file() {
-  for location in "${possible_locations[@]}"; do
-    if [ "${location}" != "${SWAP_LOCATION}" ]; then
-      old_swap_file="/${location}/_swap.swap"
-      if [ -f "${old_swap_file}" ]; then
-        print_date "Removing old swap file at ${old_swap_file}..."
-        swapoff "${old_swap_file}" || print_date "Swap file is ready to be deleted. Ignore the previous error line about swapoff Invalid argument."
-        rm -f "${old_swap_file}"
-        print_date "Old swap file removed."
-      fi
+require_free_space() {
+  local needed_mb=$1
+  local free_mb
+  free_mb=$(free_space_mb "${SWAP_DIR}")
+  if ((free_mb < needed_mb + SPACE_MARGIN_MB)); then
+    bashio::exit.nok "Not enough free space in ${SWAP_DIR}: ${free_mb} MB free, ${needed_mb} MB needed plus a ${SPACE_MARGIN_MB} MB safety margin. Lower swap_size or free some space."
+  fi
+}
+
+# Disables a swap file; "Invalid argument" means it was not active, which is fine.
+disable_swap() {
+  local output
+  if output=$(swapoff "$1" 2>&1) || [[ "${output}" == *"Invalid argument"* ]]; then
+    return 0
+  fi
+  bashio::log.error "${output}"
+  return 1
+}
+
+# Enables a swap file; "busy" means the kernel already uses it.
+enable_swap() {
+  local output
+  if output=$(swapon "$1" 2>&1); then
+    return 0
+  fi
+  if [[ "${output}" == *"busy"* ]]; then
+    bashio::log.info "${1} is already in use as swap."
+    return 0
+  fi
+  bashio::log.error "${output}"
+  return 1
+}
+
+create_swap() {
+  local file=$1 size_mb=$2
+  bashio::log.info "Creating ${file} (${size_mb} MB)..."
+  if ! fallocate -l "${size_mb}M" "${file}" 2>/dev/null; then
+    bashio::log.warning "fallocate is not supported here, writing the file with dd (slower)."
+    if ! dd if=/dev/zero of="${file}" bs=1M count="${size_mb}" status=none; then
+      rm -f "${file}"
+      bashio::exit.nok "Could not write ${file}."
     fi
+  fi
+  chmod 0600 "${file}"
+  if ! mkswap "${file}" >/dev/null; then
+    rm -f "${file}"
+    bashio::exit.nok "mkswap failed on ${file}."
+  fi
+  enable_swap "${file}" || bashio::exit.nok "Could not enable ${file}."
+}
+
+remove_swap() {
+  disable_swap "$1" || return 1
+  rm -f "$1"
+}
+
+remove_previous_swap_files() {
+  local candidates=() location file
+  for location in "${LOCATIONS[@]}"; do
+    candidates+=("/${location}/${SWAP_NAME}" "/${location}/${TEMP_SWAP_NAME}")
+  done
+  if [[ -f "${STATE_FILE}" ]]; then
+    file=$(<"${STATE_FILE}")
+    candidates+=("${file}" "$(dirname "${file}")/${TEMP_SWAP_NAME}")
+  fi
+  for file in "${candidates[@]}"; do
+    [[ "${file}" == "${SWAP_FILE}" || "${file}" == "${TEMP_SWAP_FILE}" || ! -f "${file}" ]] && continue
+    bashio::log.info "Removing ${file} left by a previous location..."
+    remove_swap "${file}" ||
+      bashio::log.warning "Kept ${file}: it is still in use, it will be removed on a later start."
   done
 }
 
-print_date() {
-  timestamp=$(date +'%H:%M:%S %d/%m/%Y')
-  echo "[$timestamp] $1"
-}
+bashio::log.info "Swap file: ${SWAP_FILE}, requested size: ${SWAP_SIZE} MB."
 
-print_date "Starting Increase Swap add-on..."
-print_date "Checking swap size at ${SWAP_LOCATION}..."
+# Never create the folder: on an unplugged drive it would land on the data disk.
+if [[ ! -d "${SWAP_DIR}" ]]; then
+  bashio::exit.nok "${SWAP_DIR} does not exist. For an external drive, check that it is plugged in and listed under /media."
+fi
 
-remove_old_swap_file
+remove_previous_swap_files
 
-if [ ! -f "${SWAP_FILE}" ]; then
-  print_date "Creating new swap file: ${SWAP_FILE} of ${SWAP_SIZE}M..."
-  fallocate -l "${SWAP_SIZE}M" "${SWAP_FILE}"
-  chmod 0600 "${SWAP_FILE}"
-  mkswap "${SWAP_FILE}"
-  swapon "${SWAP_FILE}"
-  print_date "New swap file: ${SWAP_FILE} created and enabled."
+# A temporary file only survives an interrupted resize.
+if [[ -f "${TEMP_SWAP_FILE}" ]]; then
+  bashio::log.info "Removing ${TEMP_SWAP_FILE} left by an interrupted resize..."
+  remove_swap "${TEMP_SWAP_FILE}" || bashio::exit.nok "Could not disable ${TEMP_SWAP_FILE}."
+fi
+
+if [[ ! -f "${SWAP_FILE}" ]]; then
+  require_free_space "${SWAP_SIZE}"
+  create_swap "${SWAP_FILE}" "${SWAP_SIZE}"
+  bashio::log.info "Swap file created and enabled."
 else
-  CURRENT_SWAP_SIZE=$(($(stat -c%s "${SWAP_FILE}") / (1024 * 1024)))
-  if [ "${CURRENT_SWAP_SIZE}" -ne "${SWAP_SIZE}" ]; then
-    print_date "Creating temporary swap file for safety during resizing, size: ${TEMP_SWAP_SIZE}M..."
-    fallocate -l "${TEMP_SWAP_SIZE}M" "${TEMP_SWAP_FILE}"
-    chmod 0600 "${TEMP_SWAP_FILE}"
-    mkswap "${TEMP_SWAP_FILE}"
-    swapon "${TEMP_SWAP_FILE}"
-    print_date "Temporary swap file created and enabled."
-
-    print_date "Resizing swap file: ${SWAP_FILE} from ${CURRENT_SWAP_SIZE}M to ${SWAP_SIZE}M..."
-    swapoff "${SWAP_FILE}" || print_date "Swap file has been already set off. Ignore the previous error line about swapoff Invalid argument."
-    rm -f "${SWAP_FILE}"
-    fallocate -l "${SWAP_SIZE}M" "${SWAP_FILE}"
-    chmod 0600 "${SWAP_FILE}"
-    mkswap "${SWAP_FILE}"
-    swapon "${SWAP_FILE}"
-    print_date "Swap file resized and enabled."
-
-    print_date "Disabling and removing temporary swap file..."
-    swapoff "${TEMP_SWAP_FILE}"
-    rm -f "${TEMP_SWAP_FILE}"
-    print_date "Temporary swap file removed."
-  elif [[ ! $(cat /proc/swaps | grep _swap.swap) ]]; then
-    print_date "Swap file: ${SWAP_FILE} exists but not enabled. Enabling swap file..."
-    swapon "${SWAP_FILE}"
-    print_date "Existing swap file: ${SWAP_FILE} enabled."
+  CURRENT_SWAP_SIZE=$(($(stat -c%s "${SWAP_FILE}") / 1024 / 1024))
+  if ((CURRENT_SWAP_SIZE != SWAP_SIZE)); then
+    bashio::log.info "Resizing from ${CURRENT_SWAP_SIZE} MB to ${SWAP_SIZE} MB."
+    GROWTH=$((SWAP_SIZE > CURRENT_SWAP_SIZE ? SWAP_SIZE - CURRENT_SWAP_SIZE : 0))
+    require_free_space $((TEMP_SWAP_SIZE + GROWTH))
+    # The temporary swap holds the pages moved out of the old file during swapoff.
+    create_swap "${TEMP_SWAP_FILE}" "${TEMP_SWAP_SIZE}"
+    if ! remove_swap "${SWAP_FILE}"; then
+      remove_swap "${TEMP_SWAP_FILE}"
+      bashio::exit.nok "The current swap file is too full to be released; it was kept as is. Retry when memory use is lower, or restart the host."
+    fi
+    create_swap "${SWAP_FILE}" "${SWAP_SIZE}"
+    remove_swap "${TEMP_SWAP_FILE}" || bashio::log.warning "${TEMP_SWAP_FILE} is still in use, it will be removed on the next start."
+    bashio::log.info "Swap file resized and enabled."
   else
-    print_date "Swap file: ${SWAP_FILE} already enabled. Refreshing swap file..."
-    swapoff "${SWAP_FILE}" || print_date "Swap file has been already set off. Ignore the previous error line about swapoff Invalid argument."
-    swapon "${SWAP_FILE}"
-    print_date "Swap file: ${SWAP_FILE} refreshed and enabled."
+    enable_swap "${SWAP_FILE}" || bashio::exit.nok "Could not enable ${SWAP_FILE}."
+    bashio::log.info "Swap file enabled."
   fi
 fi
+
+echo "${SWAP_FILE}" >"${STATE_FILE}"
+
+bashio::log.info "Active swap:"
+cat /proc/swaps
