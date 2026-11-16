@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.5.0] - 2026-11-16
+
+### Added
+- Optional `swap_folder` option to put the swap file in a subfolder, for instance on a USB drive mounted under `media` (#12). The folder must already exist, so an unplugged drive never sends the swap back to the SD card.
+- Dedicated AppArmor profile: the security rating goes from 6 to 7.
+
+### Changed
+- Use the `local_apps` map type instead of the legacy `addons` one, still mounted at `/addons`, which removes the Supervisor warning (#21).
+- Ship prebuilt images from `ghcr.io/tazzerman/increase_swap_addon` instead of building on the device: installs and updates are faster and no longer depend on the board's build.
+- Base image moved to the official `ghcr.io/home-assistant/base:3.24-2026.11.0`.
+- An already active swap file is left as is on restart, instead of being disabled and enabled again.
+- Logs use the Home Assistant format and end with the list of active swap files.
+
+### Fixed
+- The app checks the free disk space before creating or growing the swap file, and keeps a 512 MB margin.
+- A resize that cannot release the old swap file now stops cleanly and keeps it, instead of deleting a file still in use.
+- A temporary swap file left by an interrupted resize is removed on the next start.
+- Falls back to `dd` when the filesystem does not support `fallocate`.
+
+### Documentation
+- Explain that `backup` is the only location never copied into backups.
+- Explain why 1.4.0 and later cannot install on a 32-bit (`armv7`) system.
+- Explain why two swap areas are listed, and how to resize the one built into Home Assistant OS 15 and later.
+
 ## [1.4.1] - 2026-04-22
 
 ### Fixed
