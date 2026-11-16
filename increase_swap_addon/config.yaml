@@ -18,7 +18,14 @@ schema:
 privileged:
   - SYS_ADMIN
 map:
-  - addons:rw
-  - media:rw
-  - share:rw
-  - backup:rw
+  # local_apps replaces the legacy "addons" map type; the path keeps the
+  # historical /addons mount so existing swap files are still found.
+  - type: local_apps
+    read_only: false
+    path: /addons
+  - type: media
+    read_only: false
+  - type: share
+    read_only: false
+  - type: backup
+    read_only: false
