@@ -62,7 +62,13 @@ jobs:
           NAME: ${{ steps.info.outputs.name }}
           DESCRIPTION: ${{ steps.info.outputs.description }}
           URL: ${{ steps.info.outputs.url }}
+        # The info helper returns JSON strings, quotes included.
         run: |
+          IMAGE=$(jq -r . <<<"${IMAGE}")
+          VERSION=$(jq -r . <<<"${VERSION}")
+          NAME=$(jq -r . <<<"${NAME}")
+          DESCRIPTION=$(jq -r . <<<"${DESCRIPTION}")
+          URL=$(jq -r . <<<"${URL}")
           {
             echo "image_name=${IMAGE##*/}"
             echo "registry_prefix=${IMAGE%/*}"
