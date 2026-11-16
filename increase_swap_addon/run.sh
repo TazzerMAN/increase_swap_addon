@@ -1,11 +1,9 @@
 #!/command/with-contenv bashio
 # shellcheck shell=bash
-# Creates, resizes or enables the swap file, then exits.
 
 readonly SWAP_NAME="_swap.swap"
 readonly TEMP_SWAP_NAME="_temp_swap.swap"
 readonly LOCATIONS=("addons" "media" "share" "backup")
-# Free space kept on the disk after the swap file, so Home Assistant keeps working.
 readonly SPACE_MARGIN_MB=512
 # Path of the swap file in use, so a change of location or folder can clean it up.
 readonly STATE_FILE="/data/swap_file"

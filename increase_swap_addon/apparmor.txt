@@ -22,7 +22,6 @@ profile increase_swap_addon flags=(attach_disconnected,mediate_deleted) {
   network inet dgram,
   network inet6 dgram,
 
-  # S6-Overlay
   /init rix,
   /bin/** ix,
   /sbin/** ix,
@@ -36,11 +35,9 @@ profile increase_swap_addon flags=(attach_disconnected,mediate_deleted) {
   /etc/cont-init.d/** rwix,
   /etc/cont-finish.d/** rwix,
 
-  # Bashio
   /usr/lib/bashio/** ix,
   /tmp/** rwk,
 
-  # App script, options and swap file locations
   /run.sh rix,
   /data/** rw,
   /addons/** rw,

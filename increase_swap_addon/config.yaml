@@ -1,4 +1,3 @@
-# https://developers.home-assistant.io/docs/apps/configuration
 name: "Increase Swap"
 version: "1.5.0"
 slug: increase_swap_addon
