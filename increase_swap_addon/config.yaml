@@ -1,13 +1,15 @@
+# https://developers.home-assistant.io/docs/apps/configuration
 name: "Increase Swap"
 version: "1.4.1"
 slug: increase_swap_addon
-description: "This add-on increases the swap space on your system."
+description: "Adds a swap file to Home Assistant OS, sized and placed from the app options."
 url: "https://github.com/TazzerMAN/increase_swap_addon"
 arch:
   - aarch64
   - amd64
+image: "ghcr.io/tazzerman/increase_swap_addon"
 startup: services
-boot: "auto"
+boot: auto
 init: false
 options:
   swap_size: 2048
